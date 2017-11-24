@@ -29,7 +29,7 @@ type empty struct{}
 // A typical use is when multiple routines need to know when a resource is available but do
 // not need exclusive access to the resource.
 type StartGroup struct {
-	lock       *sync.Mutex
+	lock       *sync.RWMutex
 	notifyList *sync.WaitGroup
 }
 
@@ -37,24 +37,30 @@ type StartGroup struct {
 func MakeStartGroup() *StartGroup {
 	var wg = &sync.WaitGroup{}
 	wg.Add(1)
-	return &StartGroup{lock: &sync.Mutex{}, notifyList: wg}
+	return &StartGroup{lock: &sync.RWMutex{}, notifyList: wg}
 }
 
 //  Release all Waiting goroutines
 func (group *StartGroup) Release() {
+	// create a new waitgroup
+	var new = &sync.WaitGroup{}
+	new.Add(1)
+
 	// mutex is to prevent multiple goroutines from trying to release simultaneously
 	group.lock.Lock()
-	// create a new waitgroup and swap it
-	var new = &sync.WaitGroup{}
+	// swap the new waitgroup in for the old one
 	var old = group.notifyList
-	new.Add(1)
 	group.notifyList = new
+	group.lock.Unlock()
+
 	// release the old one
 	old.Done()
-	group.lock.Unlock()
 }
 
 // Wait for a release event
 func (group *StartGroup) Wait() {
-	group.notifyList.Wait()
+	group.lock.RLock()
+	var waitList = group.notifyList
+	group.lock.RUnlock()
+	waitList.Wait()
 }

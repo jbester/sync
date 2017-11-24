@@ -48,6 +48,7 @@ func (suite *StartGroupTestSuite) asyncWait(onWaitComplete callback) {
 	<-time.After(time.Millisecond)
 }
 
+// verify a single routine can be released
 func (suite *StartGroupTestSuite) Test_Wait() {
 	var done = false
 	suite.asyncWait(func() {
@@ -58,17 +59,43 @@ func (suite *StartGroupTestSuite) Test_Wait() {
 	assert.True(suite.T(), done)
 }
 
+// verify that multiple threads can be simultaneously released
 func (suite *StartGroupTestSuite) Test_ReleaseGroup() {
 	var done int32 = 0
-	suite.asyncWait(func() {
-		atomic.AddInt32(&done, 1)
-	})
-	suite.asyncWait(func() {
-		atomic.AddInt32(&done, 1)
-	})
+	for i := 0; i < 10; i++ {
+		suite.asyncWait(func() {
+			atomic.AddInt32(&done, 1)
+		})
+
+	}
 	suite.startGroup.Release()
 	suite.waitGroup.Wait()
-	assert.Equal(suite.T(), int32(2), done)
+	assert.Equal(suite.T(), int32(10), done)
+}
+
+// Verify the startgroup can be reused without reinitialization
+func (suite *StartGroupTestSuite) Test_Reuse() {
+	var done1 int32 = 0
+	var done2 int32 = 0
+	for i := 0; i < 10; i++ {
+		suite.asyncWait(func() {
+			atomic.AddInt32(&done1, 1)
+		})
+
+	}
+	suite.startGroup.Release()
+	suite.waitGroup.Wait()
+	assert.Equal(suite.T(), int32(10), done1)
+
+	for i := 0; i < 10; i++ {
+		suite.asyncWait(func() {
+			atomic.AddInt32(&done2, 1)
+		})
+
+	}
+	suite.startGroup.Release()
+	suite.waitGroup.Wait()
+	assert.Equal(suite.T(), int32(10), done2)
 }
 
 func TestStartGroupTestSuite(t *testing.T) {
