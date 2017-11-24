@@ -18,7 +18,6 @@ package startgroup
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -46,7 +45,7 @@ func (suite *StartGroupTestSuite) asyncWait(onWaitComplete callback) {
 		suite.startGroup.Wait()
 		onWaitComplete()
 	}()
-	runtime.Gosched()
+	<-time.After(time.Millisecond)
 }
 
 //  Spawn a routine to trywait on the startgroup
@@ -58,7 +57,7 @@ func (suite *StartGroupTestSuite) asyncTryWait(timeout time.Duration, onWaitComp
 			onWaitComplete()
 		}
 	}()
-	runtime.Gosched()
+	<-time.After(time.Millisecond)
 }
 
 func (suite *StartGroupTestSuite) Test_Wait() {

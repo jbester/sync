@@ -17,7 +17,6 @@ package events
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -45,7 +44,7 @@ func (suite *TestEventSuite) asyncWait(onWaitComplete callback) {
 		suite.evt.Wait()
 		onWaitComplete()
 	}()
-	runtime.Gosched()
+	<-time.After(time.Millisecond)
 }
 
 //  Spawn a routine to trywait on the event
@@ -57,7 +56,7 @@ func (suite *TestEventSuite) asyncTryWait(timeout time.Duration, onWaitComplete 
 			onWaitComplete()
 		}
 	}()
-	runtime.Gosched()
+	<-time.After(time.Millisecond)
 }
 
 //  Test that the routine wakes up when set
