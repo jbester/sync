@@ -42,11 +42,11 @@ func MakeEvent() *Event {
 //  event is set to the unset state again.
 //  Returns true if the event changed.
 func (evt *Event) Set() bool {
-	if atomic.CompareAndSwapInt32(&evt.state, 0, 1) {
+	var ok = atomic.CompareAndSwapInt32(&evt.state, 0, 1)
+	if ok {
 		evt.notifyList.Release()
-		return true
 	}
-	return false
+	return ok
 }
 
 //  Checks if the specified event is in set state.
