@@ -25,7 +25,6 @@ package events
 import (
 	"sync/atomic"
 	"sync/startgroup"
-	"time"
 )
 
 type Event struct {
@@ -69,18 +68,4 @@ func (evt *Event) Wait() {
 	} else {
 		evt.notifyList.Wait()
 	}
-}
-
-//  Wait for the event to be in the set state.  Any routine waiting on an event
-//  in the set state will not block.   Returns true if the event is in the set state and
-//  false if a timeout occurred.
-func (evt *Event) TryWait(timeout time.Duration) bool {
-	var ok bool
-	if evt.IsSet() {
-		ok = true
-	} else {
-		ok = evt.notifyList.TryWait(timeout)
-	}
-
-	return ok
 }

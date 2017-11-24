@@ -47,18 +47,6 @@ func (suite *TestEventSuite) asyncWait(onWaitComplete callback) {
 	<-time.After(time.Millisecond)
 }
 
-//  Spawn a routine to trywait on the event
-func (suite *TestEventSuite) asyncTryWait(timeout time.Duration, onWaitComplete callback) {
-	go func() {
-		suite.waitGroup.Add(1)
-		defer suite.waitGroup.Done()
-		if suite.evt.TryWait(timeout) {
-			onWaitComplete()
-		}
-	}()
-	<-time.After(time.Millisecond)
-}
-
 //  Test that the routine wakes up when set
 func (suite *TestEventSuite) Test_Wait() {
 	var eventReceived = false
@@ -99,37 +87,6 @@ func (suite *TestEventSuite) Test_WaitWhenAlreadySet() {
 		eventReceived = true
 	})
 	assert.True(suite.T(), eventReceived)
-}
-
-// Test try wait will trigger a timeout
-func (suite *TestEventSuite) Test_TryWaitTimeout() {
-	var eventReceived = false
-	suite.asyncTryWait(time.Millisecond, func() {
-		eventReceived = true
-	})
-	suite.waitGroup.Wait()
-	assert.False(suite.T(), eventReceived)
-}
-
-// Test try wait will return immediately if already set
-func (suite *TestEventSuite) Test_TryWaitWhenSet() {
-	var eventReceived = false
-	suite.evt.Set()
-	suite.asyncTryWait(time.Millisecond, func() {
-		eventReceived = true
-	})
-	assert.True(suite.T(), eventReceived)
-}
-
-// Test try wait will wait on a reset event
-func (suite *TestEventSuite) Test_WaitWhenReset() {
-	var eventReceived = false
-	suite.evt.Set()
-	suite.evt.Reset()
-	suite.asyncTryWait(time.Millisecond, func() {
-		eventReceived = true
-	})
-	assert.False(suite.T(), eventReceived)
 }
 
 // Test that the event will wake up multiple routines

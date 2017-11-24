@@ -48,18 +48,6 @@ func (suite *StartGroupTestSuite) asyncWait(onWaitComplete callback) {
 	<-time.After(time.Millisecond)
 }
 
-//  Spawn a routine to trywait on the startgroup
-func (suite *StartGroupTestSuite) asyncTryWait(timeout time.Duration, onWaitComplete callback) {
-	go func() {
-		suite.waitGroup.Add(1)
-		defer suite.waitGroup.Done()
-		if suite.startGroup.TryWait(timeout) {
-			onWaitComplete()
-		}
-	}()
-	<-time.After(time.Millisecond)
-}
-
 func (suite *StartGroupTestSuite) Test_Wait() {
 	var done = false
 	suite.asyncWait(func() {
@@ -68,25 +56,6 @@ func (suite *StartGroupTestSuite) Test_Wait() {
 	suite.startGroup.Release()
 	suite.waitGroup.Wait()
 	assert.True(suite.T(), done)
-}
-
-func (suite *StartGroupTestSuite) Test_TryWaitSuccess() {
-	var done = false
-	suite.asyncTryWait(time.Second, func() {
-		done = true
-	})
-	suite.startGroup.Release()
-	suite.waitGroup.Wait()
-	assert.True(suite.T(), done)
-}
-
-func (suite *StartGroupTestSuite) Test_TryWaitTimeout() {
-	var done = false
-	suite.asyncTryWait(time.Millisecond*5, func() {
-		done = true
-	})
-	suite.waitGroup.Wait()
-	assert.False(suite.T(), done)
 }
 
 func (suite *StartGroupTestSuite) Test_ReleaseGroup() {
