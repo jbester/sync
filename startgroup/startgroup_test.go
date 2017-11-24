@@ -106,3 +106,10 @@ func (suite *StartGroupTestSuite) Test_ReleaseGroup() {
 func TestStartGroupTestSuite(t *testing.T) {
 	suite.Run(t, new(StartGroupTestSuite))
 }
+
+func Benchmark_Release(b *testing.B) {
+	var sg = MakeStartGroup()
+	for n := 0; n < b.N; n++ {
+		sg.Release()
+	}
+}

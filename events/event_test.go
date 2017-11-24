@@ -150,3 +150,11 @@ func (suite *TestEventSuite) Test_WaitMultiple() {
 func TestEventTestSuite(t *testing.T) {
 	suite.Run(t, new(TestEventSuite))
 }
+
+func Benchmark_SetReset(b *testing.B) {
+	var sg = MakeEvent()
+	for n := 0; n < b.N; n++ {
+		sg.Set()
+		sg.Reset()
+	}
+}
