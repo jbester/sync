@@ -8,41 +8,41 @@
 package events
 
 import (
-	"sync/semaphores"
+	"sync/atomic"
 	"sync/startgroup"
 	"time"
 )
 
 type Event struct {
-	state      semaphores.Semaphore
+	state      int32
 	notifyList *startgroup.StartGroup
 }
 
 // Creates an event object for use by any routine.  Upon creation the event is set to the down state.
 func MakeEvent() *Event {
-	return &Event{semaphores.MakeBinarySemaphore(false), startgroup.MakeStartGroup()}
+	return &Event{state: 0, notifyList: startgroup.MakeStartGroup()}
 }
 
 //  Set request sets the specified event to the up state. All the routines waiting
 //  on the event will stop waiting.  Any routine attempting to wait will not block.
-func (evt *Event) Set() {
-	if !evt.IsSet() {
-		evt.state.Give()
+//  Returns true if the event changed.
+func (evt *Event) Set() bool {
+	if atomic.CompareAndSwapInt32(&evt.state, 0, 1) {
 		evt.notifyList.Release()
+		return true
 	}
+	return false
 }
 
 //  Checks if the specified event is in up state.
 func (evt *Event) IsSet() bool {
-	return evt.state.IsFull()
+	return atomic.LoadInt32(&evt.state) == 1
 }
 
-//  Resets the specified event to the down state.   Any routine attempting to wait
-//  will block until the event is set.
-func (evt *Event) Reset() {
-	if evt.IsSet() {
-		evt.state.Take()
-	}
+//  Resets the specified event to the down state.   Once reset any routine attempting to wait
+//  will block until the event is set again.  Returns true if the event changed.
+func (evt *Event) Reset() bool {
+	return atomic.CompareAndSwapInt32(&evt.state, 1, 0)
 }
 
 //  Wait for the event to be in the up state.  Any routine that attemps to wait on an event
