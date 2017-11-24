@@ -14,7 +14,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package semaphores provides a go implementation of binary and counting semaphores.
-// The underlying implementation is built on the channel primitive.
+// The underlying implementation is built on the channel primitive.  As such, it doesn't
+// offer any advantages over using a channel except for readability.
 package semaphores
 
 import "time"
