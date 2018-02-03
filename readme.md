@@ -42,7 +42,7 @@ Installation
 
 To install, use `go get`:
 
-    * Latest version: go get bitbucket.org/jbester/sync
+    * Latest version: go get bitbucket.org/jbester/sync/...
 
 This will then make the following packages available to you:
 
@@ -55,7 +55,7 @@ This will then make the following packages available to you:
 Staying up to date
 ==================
 
-To update to the latest version, use `go get -u bitbucket.org/jbester/sync`.
+To update to the latest version, use `go get -u bitbucket.org/jbester/sync/...`.
 
 ------
 
