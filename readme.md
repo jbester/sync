@@ -9,9 +9,9 @@ Primitives include:
   * [StartGroups](#start-group)
   * [Semaphores](#semaphores)
 
-Check out the API Documentation http://godoc.org/github.com/jbester/sync
+Check out the API Documentation http://godoc.org/bitbucket.org/jbester/sync
 
-[`events`](http://godoc.org/github.com/jbester/sync/events "API documentation") package
+[`events`](http://godoc.org/bitbucket.org/jbester/sync/events "API documentation") package
 ---------------------------------------------------------------------------------------------
 
 The `events` package provides a single synchronization primitive the Event. An event is used to notify the occurrence of a condition to routines.
@@ -20,7 +20,7 @@ The `events` package provides a single synchronization primitive the Event. An e
  
  The event primitive is similar to the event in the pSOS or ARINC 653 API sets.
 
-[`startgroup`](http://godoc.org/github.com/jbester/sync/startgroup "API documentation") package
+[`startgroup`](http://godoc.org/bitbucket.org/jbester/sync/startgroup "API documentation") package
 ---------------------------------------------------------------------------------------
 
 The `startgroup` package provides a mechanism for a collection of goroutines to wait for a release event.
@@ -29,7 +29,7 @@ When released, all blocked routines simultaneously.
 A typical use is when multiple routines need to know when a resource is available but do
 not need exclusive access to the resource.
 
-[`semaphores`](http://godoc.org/github.com/jbester/sync/semaphores "API documentation") package
+[`semaphores`](http://godoc.org/bitbucket.org/jbester/sync/semaphores "API documentation") package
 -------------------------------------------------------------------------------------------
 
 The `semaphores` package provides a go implementation of binary and counting semaphores.
@@ -42,20 +42,20 @@ Installation
 
 To install, use `go get`:
 
-    * Latest version: go get github.com/jbester/sync
+    * Latest version: go get bitbucket.org/jbester/sync
 
 This will then make the following packages available to you:
 
-    github.com/jbester/sync/semaphores
-    github.com/jbester/sync/events
-    github.com/jbester/sync/startgroup
+    bitbucket.org/jbester/sync/semaphores
+    bitbucket.org/jbester/sync/events
+    bitbucket.org/jbester/sync/startgroup
 
 ------
 
 Staying up to date
 ==================
 
-To update to the latest version, use `go get -u github.com/jbester/sync`.
+To update to the latest version, use `go get -u bitbucket.org/jbester/sync`.
 
 ------
 

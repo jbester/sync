@@ -24,7 +24,7 @@ package events
 
 import (
 	"sync/atomic"
-	"sync/startgroup"
+	"bitbucket.org/jbester/sync/startgroup"
 )
 
 type Event struct {
