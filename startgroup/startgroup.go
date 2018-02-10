@@ -19,6 +19,7 @@ package startgroup
 
 import (
 	"sync"
+	"time"
 )
 
 type empty struct{}
@@ -63,4 +64,23 @@ func (group *StartGroup) Wait() {
 	var waitList = group.notifyList
 	group.lock.RUnlock()
 	waitList.Wait()
+}
+
+// Wait for a release event for up to a timeout
+func (group *StartGroup) TimedWait(timeout time.Duration) bool {
+	group.lock.RLock()
+	var waitList = group.notifyList
+	group.lock.RUnlock()
+	var ch = make(chan empty)
+	defer close(ch)
+	go func() {
+		waitList.Wait()
+		ch <- empty{}
+	}()
+	select {
+	case <-ch:
+		return true
+	case <-time.After(timeout):
+		return false
+	}
 }

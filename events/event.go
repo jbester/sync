@@ -24,6 +24,8 @@ package events
 
 import (
 	"sync/atomic"
+	"time"
+
 	"bitbucket.org/jbester/sync/startgroup"
 )
 
@@ -67,5 +69,15 @@ func (evt *Event) Wait() {
 		return
 	} else {
 		evt.notifyList.Wait()
+	}
+}
+
+//  Wait for the event to be in the set state up to the given timeout.  Any routine that attempts to wait on an event
+//  already in the set state will not block.
+func (evt *Event) TimedWait(timeout time.Duration) bool {
+	if evt.IsSet() {
+		return true
+	} else {
+		return evt.notifyList.TimedWait(timeout)
 	}
 }
