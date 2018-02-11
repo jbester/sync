@@ -15,17 +15,18 @@
 package events
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type TestEventSuite struct {
 	suite.Suite
-	evt       *Event
+	evt       Event
 	waitGroup *sync.WaitGroup
 }
 

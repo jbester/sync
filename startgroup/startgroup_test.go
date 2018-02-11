@@ -16,17 +16,18 @@
 package startgroup
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type StartGroupTestSuite struct {
 	suite.Suite
-	startGroup *StartGroup
+	startGroup StartGroup
 	waitGroup  *sync.WaitGroup
 }
 

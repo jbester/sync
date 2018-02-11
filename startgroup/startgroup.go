@@ -29,45 +29,53 @@ type empty struct{}
 //
 // A typical use is when multiple routines need to know when a resource is available but do
 // not need exclusive access to the resource.
-type StartGroup struct {
+type StartGroup interface {
+	//  Release all Waiting goroutines
+	Release()
+
+	// Wait for a release event
+	Wait()
+
+	// Wait for a release event for up to a timeout
+	TimedWait(timeout time.Duration) bool
+}
+
+type startGroup struct {
 	lock       *sync.RWMutex
 	notifyList *sync.WaitGroup
 }
 
 //  Create a StartGroup.
-func MakeStartGroup() *StartGroup {
+func MakeStartGroup() StartGroup {
 	var wg = &sync.WaitGroup{}
 	wg.Add(1)
-	return &StartGroup{lock: &sync.RWMutex{}, notifyList: wg}
+	return &startGroup{lock: &sync.RWMutex{}, notifyList: wg}
 }
 
-//  Release all Waiting goroutines
-func (group *StartGroup) Release() {
-	// create a new waitgroup
-	var new = &sync.WaitGroup{}
-	new.Add(1)
+func (group *startGroup) Release() {
+	// create a wg waitgroup
+	var wg = &sync.WaitGroup{}
+	wg.Add(1)
 
 	// mutex is to prevent multiple goroutines from trying to release simultaneously
 	group.lock.Lock()
-	// swap the new waitgroup in for the old one
+	// swap the wg waitgroup in for the old one
 	var old = group.notifyList
-	group.notifyList = new
+	group.notifyList = wg
 	group.lock.Unlock()
 
 	// release the old one
 	old.Done()
 }
 
-// Wait for a release event
-func (group *StartGroup) Wait() {
+func (group *startGroup) Wait() {
 	group.lock.RLock()
 	var waitList = group.notifyList
 	group.lock.RUnlock()
 	waitList.Wait()
 }
 
-// Wait for a release event for up to a timeout
-func (group *StartGroup) TimedWait(timeout time.Duration) bool {
+func (group *startGroup) TimedWait(timeout time.Duration) bool {
 	group.lock.RLock()
 	var waitList = group.notifyList
 	group.lock.RUnlock()

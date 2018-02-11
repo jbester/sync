@@ -29,21 +29,45 @@ import (
 	"bitbucket.org/jbester/sync/startgroup"
 )
 
-type Event struct {
+// Multiple routines can wait on a condition.   _All_ routines unblock once the event is set to the set state.
+// A routine that waits on an event that is already set will not block.
+type Event interface {
+	//  Set changes the specified event to the set state. All the routines waiting
+	//  on the event will stop waiting.  Any subsequent routine attempting to wait will not block until the
+	//  event is set to the unset state again.
+	//  Returns true if the event changed.
+	Set() bool
+
+	//  Resets the specified event to the unset state.   Once reset, any routine attempting to wait
+	//  will block until the event is set again.  Returns true if the event changed.
+	Reset() bool
+
+	//  Checks if the specified event is in set state.
+	IsSet() bool
+
+	//  Wait for the event to be in the set state.  Any routine that attempts to wait on an event
+	//  already in the set state will not block.
+	Wait()
+
+	//  Wait for the event to be in the set state up to the given timeout.  Any routine that attempts to wait
+	//  on an event already in the set state will not block.
+	TimedWait(timeout time.Duration) bool
+}
+
+type event struct {
 	state      int32
-	notifyList *startgroup.StartGroup
+	notifyList startgroup.StartGroup
 }
 
 // Creates an event object for use by any routine.  Upon creation the event is set to the unset state.
-func MakeEvent() *Event {
-	return &Event{state: 0, notifyList: startgroup.MakeStartGroup()}
+func MakeEvent() Event {
+	return &event{
+		state:      0,
+		notifyList: startgroup.MakeStartGroup(),
+	}
 }
 
-//  Set changes the specified event to the set state. All the routines waiting
-//  on the event will stop waiting.  Any subsequent routine attempting to wait will not block until the
-//  event is set to the unset state again.
-//  Returns true if the event changed.
-func (evt *Event) Set() bool {
+func (evt *event) Set() bool {
 	var ok = atomic.CompareAndSwapInt32(&evt.state, 0, 1)
 	if ok {
 		evt.notifyList.Release()
@@ -51,20 +75,15 @@ func (evt *Event) Set() bool {
 	return ok
 }
 
-//  Checks if the specified event is in set state.
-func (evt *Event) IsSet() bool {
+func (evt *event) IsSet() bool {
 	return atomic.LoadInt32(&evt.state) == 1
 }
 
-//  Resets the specified event to the unset state.   Once reset, any routine attempting to wait
-//  will block until the event is set again.  Returns true if the event changed.
-func (evt *Event) Reset() bool {
+func (evt *event) Reset() bool {
 	return atomic.CompareAndSwapInt32(&evt.state, 1, 0)
 }
 
-//  Wait for the event to be in the set state.  Any routine that attempts to wait on an event
-//  already in the set state will not block.
-func (evt *Event) Wait() {
+func (evt *event) Wait() {
 	if evt.IsSet() {
 		return
 	} else {
@@ -72,9 +91,7 @@ func (evt *Event) Wait() {
 	}
 }
 
-//  Wait for the event to be in the set state up to the given timeout.  Any routine that attempts to wait on an event
-//  already in the set state will not block.
-func (evt *Event) TimedWait(timeout time.Duration) bool {
+func (evt *event) TimedWait(timeout time.Duration) bool {
 	if evt.IsSet() {
 		return true
 	} else {
