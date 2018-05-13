@@ -12,7 +12,7 @@ Primitives include:
 Check out the API Documentation http://godoc.org/bitbucket.org/jbester/sync
 
 [`events`](http://godoc.org/bitbucket.org/jbester/sync/events "API documentation") package
-------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------
 
 The `events` package provides a single synchronization primitive the Event. An event is used to notify the occurrence of a condition to routines.
 
@@ -30,7 +30,8 @@ A typical use is when multiple routines need to know when a resource is availabl
 [`semaphores`](http://godoc.org/bitbucket.org/jbester/sync/semaphores "API documentation") package
 --------------------------------------------------------------------------------------------------
 
-The `semaphores` package provides a go implementation of binary and counting semaphores. The underlying implementation is built on the channel primitive. As such, it doesn't offer any advantages over using a channel except for readability.
+The `semaphores` package provides a go implementation of binary and counting semaphores.  It is designed to use atomic operations to maintain the semaphore count and a channel to signal waiting threads.
+
 
 Installation
 ============
@@ -38,7 +39,7 @@ Installation
 To install, use `go get`:
 
 ```
-* Latest version: go get bitbucket.org/jbester/sync/...
+go get bitbucket.org/jbester/sync/...
 ```
 
 This will then make the following packages available to you:
@@ -54,7 +55,7 @@ bitbucket.org/jbester/sync/startgroup
 Staying up to date
 ==================
 
-To update to the latest version, use `go get -u bitbucket.org/jbester/sync/...`.
+To update to the latest version, use `go get -u bitbucket.org/jbester/sync`.
 
 ---
 
@@ -68,4 +69,4 @@ Please feel free to submit issues, fork the repository and send pull requests!
 Licence
 =======
 
-MIT License - see LICENSE file
+MIT License - see LICENSE file 

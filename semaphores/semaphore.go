@@ -14,8 +14,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package semaphores provides a go implementation of binary and counting semaphores.
-// The underlying implementation is built on the channel primitive.  As such, it doesn't
-// offer any advantages over using a channel except for readability.
+// The underlying implementation is built on the channel primitive for goroutine notifications and atomic operations for
+// for the fast path.
 package semaphores
 
 import "time"
@@ -29,15 +29,15 @@ type Semaphore interface {
 	// or the semaphore becomes available
 	TryTake(timeout time.Duration) bool
 
-	// Release (increment) the semaphore.  Returns false if semaphore is full.
+	// Release (increment) the semaphore.  Returns false if semaphore is signal.
 	Give() bool
 
-	// Test if the semaphore is full.
+	// Test if the semaphore is signal.
 	IsFull() bool
 
 	// Test if the semaphore is empty.
 	IsEmpty() bool
 
 	//  Returns the count of a semaphore.
-	Count() int
+	Count() int32
 }

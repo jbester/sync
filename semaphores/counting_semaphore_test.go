@@ -16,9 +16,14 @@
 package semaphores
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"sync/atomic"
+
+	"sync"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test_CreateInvalid(t *testing.T) {
@@ -59,7 +64,82 @@ func Test_CountingTryTake(t *testing.T) {
 
 func Test_CountingGetCount(t *testing.T) {
 	var semaphore = MakeCountingSemaphore(3, 5)
-	assert.Equal(t, 3, semaphore.Count())
+	assert.Equal(t, int32(3), semaphore.Count())
 	semaphore.Give()
-	assert.Equal(t, 4, semaphore.Count())
+	assert.Equal(t, int32(4), semaphore.Count())
+}
+
+func Test_CountingTakeEmptyMultiple(t *testing.T) {
+	var semaphore = MakeCountingSemaphore(0, 1)
+	var takes int32 = 0
+	var started = &sync.WaitGroup{}
+	var done = &sync.WaitGroup{}
+	started.Add(2)
+	done.Add(1) // only one expected to finish
+
+	var worker = func() {
+		// mark started
+		started.Done()
+		// take
+		semaphore.Take()
+		// increment number of takes
+		atomic.AddInt32(&takes, 1)
+		// mark done
+		done.Done()
+	}
+
+	go worker()
+	go worker()
+
+	// wait for all coroutines start
+	started.Wait()
+	// verify precondition
+	assert.Equal(t, int32(0), takes)
+	// give the semaphore
+	semaphore.Give()
+	// wait for one of the coroutines finishes
+	done.Wait()
+	// verify count
+	assert.Equal(t, int32(1), takes)
+}
+
+func Test_CountingTimedTakeEmptyMultiple(t *testing.T) {
+	var semaphore = MakeCountingSemaphore(0, 1)
+	var takes int32 = 0
+	var started = &sync.WaitGroup{}
+	var done = &sync.WaitGroup{}
+	started.Add(3)
+	done.Add(3)
+	var worker = func() {
+		// mark started
+		started.Done()
+		var start = time.Now()
+		const timeout = time.Millisecond * 100
+		// try take
+		if semaphore.TryTake(timeout) {
+			// increment if successful
+			atomic.AddInt32(&takes, 1)
+		}
+		var delta = time.Now().Sub(start)
+		// check if timeout expired within timeout + 5%
+		assert.True(t, delta < timeout+time.Millisecond*5)
+		// mark done
+		done.Done()
+	}
+	go worker()
+	go worker()
+	go worker()
+	// wait for all coroutines start
+	started.Wait()
+	// verify precondition
+	assert.Equal(t, int32(0), takes)
+	// give the semaphore
+	semaphore.Give()
+	<-time.After(50 * time.Millisecond)
+	// give the semaphore
+	semaphore.Give()
+	// wait for one of the coroutines finishes
+	done.Wait()
+	// verify takes
+	assert.Equal(t, int32(2), takes)
 }

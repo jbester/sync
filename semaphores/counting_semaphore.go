@@ -1,4 +1,4 @@
-// Copyright 2017 Jeffrey Bester <jbester@gmail.com>
+// Copyright 2018 Jeffrey Bester <jbester@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 // documentation files (the "Software"), to deal in the Software without restriction, including without limitation
@@ -16,61 +16,144 @@
 package semaphores
 
 import (
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
 type countingSemaphore struct {
-	items chan empty
-	max   int
+	signal  chan empty
+	lock    *sync.Mutex
+	current int32
+	waiting int32
+	max     int32
 }
 
 // Create a counting semaphore.  The give operation increments the semaphore.
 // A take operation decrements the semaphore.
-func MakeCountingSemaphore(initial int, max int) Semaphore {
+func MakeCountingSemaphore(initial int32, max int32) Semaphore {
 	var semaphore = &countingSemaphore{
-		items: make(chan empty, max),
-		max:   max,
+		signal:  make(chan empty, 1),
+		lock:    &sync.Mutex{},
+		current: initial,
+		max:     max,
 	}
 	if initial > max {
 		panic("semaphore create with initial larger than maximum")
 	}
-
-	for initial > 0 {
-		semaphore.items <- empty{}
-		initial--
-	}
 	return semaphore
 }
 
-func (semaphore *countingSemaphore) Take() {
-	<-semaphore.items
+func (semaphore *countingSemaphore) tryAcquire() bool {
+	var ok = false
+	var count = semaphore.Count()
+	if count > 0 {
+		ok = atomic.CompareAndSwapInt32(&semaphore.current, count, count-1)
+		if ok && count == semaphore.max {
+			semaphore.notify()
+		}
+	}
+	return ok
 }
 
-func (semaphore *countingSemaphore) TryTake(duration time.Duration) bool {
-	select {
-	case <-semaphore.items:
-		return true
-	case <-time.After(duration):
-		return false
+func (semaphore *countingSemaphore) tryGive() bool {
+	var ok = false
+	var count = semaphore.Count()
+	if count < semaphore.max {
+		ok = atomic.CompareAndSwapInt32(&semaphore.current, count, count+1)
+		if ok && count == 0 {
+			semaphore.notify()
+		}
 	}
+	return ok
+}
+
+func (semaphore *countingSemaphore) notify() {
+	var numWaiting = atomic.LoadInt32(&semaphore.waiting)
+	if numWaiting > 0 {
+		// swap channel
+		semaphore.lock.Lock()
+		var old, new chan empty
+		old, new = semaphore.signal, make(chan empty, 1)
+		semaphore.signal = new
+		semaphore.lock.Unlock()
+
+		// wake everyone
+		close(old)
+	}
+}
+
+func (semaphore *countingSemaphore) wait() {
+	atomic.AddInt32(&semaphore.waiting, 1)
+	<-semaphore.signal
+	atomic.AddInt32(&semaphore.waiting, -1)
+}
+
+func (semaphore *countingSemaphore) timedWait(timeout *time.Duration) bool {
+	atomic.AddInt32(&semaphore.waiting, 1)
+	var ok = false
+	var start = time.Now()
+	select {
+	case <-semaphore.signal:
+		// decrement timeout by time elapsed
+		var timeElapsed = time.Now().Sub(start)
+		if timeElapsed < *timeout {
+			*timeout -= timeElapsed
+		} else {
+			*timeout = 0
+		}
+		ok = true
+
+	case <-time.After(*timeout):
+	}
+	atomic.AddInt32(&semaphore.waiting, -1)
+	return ok
+}
+
+func (semaphore *countingSemaphore) Take() {
+	var ok = false
+	for !ok {
+		// if empty wait
+		if semaphore.IsEmpty() {
+			semaphore.wait()
+		}
+
+		ok = semaphore.tryAcquire()
+	}
+}
+
+func (semaphore *countingSemaphore) TryTake(timeout time.Duration) bool {
+	var ok = false
+	for !ok {
+		// if empty wait
+		if semaphore.IsEmpty() {
+			if !semaphore.timedWait(&timeout) {
+				return false
+			}
+		}
+
+		ok = semaphore.tryAcquire()
+	}
+	return ok
 }
 
 func (semaphore *countingSemaphore) Give() bool {
 	var ok = false
+	// if not full give
 	if !semaphore.IsFull() {
-		semaphore.items <- empty{}
-		ok = true
+		ok = semaphore.tryGive()
 	}
 	return ok
 }
 
 func (semaphore *countingSemaphore) IsEmpty() bool {
-	return len(semaphore.items) == 0
+	return semaphore.Count() == 0
 }
 
 func (semaphore *countingSemaphore) IsFull() bool {
-	return len(semaphore.items) == semaphore.max
+	return semaphore.Count() == semaphore.max
 }
-func (semaphore *countingSemaphore) Count() int {
-	return len(semaphore.items)
+
+func (semaphore *countingSemaphore) Count() int32 {
+	return atomic.LoadInt32(&semaphore.current)
 }
